@@ -1,6 +1,12 @@
 import { createCachedSearch } from './cache';
 import { debounce } from './debounce';
 import { classifySearchError } from './error-kind';
+import {
+  loadSearchHistory,
+  pushSearchHistory,
+  saveSearchHistory,
+  type HistoryStorage,
+} from './history';
 import { mapCountryResponse, type CountryCard } from './map-country';
 import { searchCountries } from './search-countries';
 
@@ -22,9 +28,11 @@ export type SearchControllerOptions = {
   searchFn?: SearchFn;
   mapFn?: (raw: unknown) => CountryCard;
   timeoutMs?: number;
+  historyStorage?: HistoryStorage;
 };
 
 type Listener = (state: SearchState) => void;
+type HistoryListener = (history: string[]) => void;
 
 const idleState = (): SearchState => ({
   status: 'idle',
@@ -36,9 +44,12 @@ const idleState = (): SearchState => ({
 export class SearchController {
   private state: SearchState = idleState();
   private readonly listeners = new Set<Listener>();
+  private readonly historyListeners = new Set<HistoryListener>();
   private readonly searchFn: SearchFn;
   private readonly mapFn: (raw: unknown) => CountryCard;
   private readonly searchOptions: { timeoutMs?: number };
+  private readonly historyStorage: HistoryStorage | null;
+  private history: string[] = [];
   private readonly runDebouncedSearch: (query: string) => void;
   private abortController: AbortController | null = null;
   private lastQuery = '';
@@ -50,6 +61,9 @@ export class SearchController {
       options.mapFn ??
       ((raw) => mapCountryResponse(raw as Parameters<typeof mapCountryResponse>[0]));
     this.searchOptions = options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs };
+    this.historyStorage =
+      options.historyStorage ?? (typeof localStorage === 'undefined' ? null : localStorage);
+    this.history = this.historyStorage ? loadSearchHistory(this.historyStorage) : [];
     this.runDebouncedSearch = debounce((query: string) => {
       void this.executeSearch(query);
     }, options.debounceMs ?? 300);
@@ -59,11 +73,23 @@ export class SearchController {
     return this.state;
   }
 
+  getHistory(): string[] {
+    return [...this.history];
+  }
+
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
     listener(this.state);
     return () => {
       this.listeners.delete(listener);
+    };
+  }
+
+  subscribeHistory(listener: HistoryListener): () => void {
+    this.historyListeners.add(listener);
+    listener(this.getHistory());
+    return () => {
+      this.historyListeners.delete(listener);
     };
   }
 
@@ -79,6 +105,20 @@ export class SearchController {
     }
 
     this.runDebouncedSearch(normalized);
+  }
+
+  searchNow(query: string): void {
+    this.abortInFlightRequest();
+
+    const normalized = query.trim();
+    this.lastQuery = normalized;
+
+    if (normalized.length === 0) {
+      this.setState(idleState());
+      return;
+    }
+
+    void this.executeSearch(normalized);
   }
 
   retry(): void {
@@ -123,6 +163,7 @@ export class SearchController {
       const countries = rawCountries.map((raw) => this.mapFn(raw));
 
       if (countries.length === 0) {
+        this.rememberQuery(query);
         this.setState({
           status: 'empty',
           countries: [],
@@ -132,6 +173,7 @@ export class SearchController {
         return;
       }
 
+      this.rememberQuery(query);
       this.setState({
         status: 'results',
         countries,
@@ -159,6 +201,23 @@ export class SearchController {
       if (this.abortController === controller) {
         this.abortController = null;
       }
+    }
+  }
+
+  private rememberQuery(query: string): void {
+    const nextHistory = pushSearchHistory(query, this.history);
+    if (nextHistory.length === this.history.length && nextHistory[0] === this.history[0]) {
+      return;
+    }
+
+    this.history = nextHistory;
+
+    if (this.historyStorage) {
+      saveSearchHistory(this.history, this.historyStorage);
+    }
+
+    for (const listener of this.historyListeners) {
+      listener(this.getHistory());
     }
   }
 

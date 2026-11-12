@@ -198,7 +198,16 @@ export function mountSearchUi(
   errorBox.append(errorText, retryButton);
   errorBox.hidden = true;
 
-  app.append(title, searchLabel, input, status, loading, errorBox, results, detail);
+  const historySection = el('section', { className: 'history' });
+  const historyTitle = el('h2', { className: 'history__title', text: 'Recent searches' });
+  const historyList = el('div', {
+    className: 'history__list',
+    attrs: { role: 'list' },
+  });
+  historySection.append(historyTitle, historyList);
+  historySection.hidden = true;
+
+  app.append(title, searchLabel, input, historySection, status, loading, errorBox, results, detail);
   root.append(app);
 
   let selectedCountry: CountryCard | null = null;
@@ -284,6 +293,35 @@ export function mountSearchUi(
     }
   };
 
+  const renderHistory = (items: string[]): void => {
+    clearChildren(historyList);
+
+    if (items.length === 0) {
+      historySection.hidden = true;
+      return;
+    }
+
+    historySection.hidden = false;
+
+    for (const item of items) {
+      const button = el('button', {
+        className: 'history__item',
+        text: item,
+        attrs: { type: 'button', role: 'listitem' },
+      });
+
+      button.addEventListener('click', () => {
+        if (selectedCountry) {
+          showList();
+        }
+        input.value = item;
+        controller.searchNow(item);
+      });
+
+      historyList.append(button);
+    }
+  };
+
   input.addEventListener('input', () => {
     if (selectedCountry) {
       showList();
@@ -299,6 +337,7 @@ export function mountSearchUi(
   });
 
   controller.subscribe(render);
+  controller.subscribeHistory(renderHistory);
   render(latestState);
 
   return controller;
