@@ -38,6 +38,18 @@ function formatPopulation(population: number): string {
   return new Intl.NumberFormat('en-US').format(population);
 }
 
+function formatArea(area: number | null): string {
+  if (area === null) {
+    return '—';
+  }
+
+  return `${new Intl.NumberFormat('en-US').format(area)} km²`;
+}
+
+function joinOrDash(values: string[]): string {
+  return values.length > 0 ? values.join(', ') : '—';
+}
+
 function createCountryCard(
   country: CountryCard,
   onSelect: (country: CountryCard) => void,
@@ -76,11 +88,63 @@ function createCountryCard(
   return item;
 }
 
+function renderDetail(container: HTMLElement, country: CountryCard, onBack: () => void): void {
+  clearChildren(container);
+
+  const backButton = el('button', {
+    className: 'back-button',
+    text: '← Back to results',
+    attrs: { type: 'button' },
+  });
+  backButton.addEventListener('click', onBack);
+
+  const header = el('div', { className: 'detail__header' });
+
+  if (country.flag) {
+    if (country.flag.startsWith('http')) {
+      header.append(
+        el('img', {
+          className: 'detail__flag',
+          attrs: {
+            src: country.flag,
+            alt: `${country.name} flag`,
+          },
+        }),
+      );
+    } else {
+      header.append(el('span', { className: 'detail__flag-emoji', text: country.flag }));
+    }
+  }
+
+  header.append(el('h2', { className: 'detail__title', text: country.name }));
+
+  const list = el('dl', { className: 'detail__list' });
+  const rows: Array<[string, string]> = [
+    ['Description', country.description || '—'],
+    ['Capital', country.capital || '—'],
+    ['Region', country.region || '—'],
+    ['Population', formatPopulation(country.population)],
+    ['Area', formatArea(country.area)],
+    ['Borders', joinOrDash(country.borders)],
+    ['Languages', joinOrDash(country.languages)],
+    ['Currency', joinOrDash(country.currencies)],
+  ];
+
+  for (const [label, value] of rows) {
+    list.append(el('dt', { text: label }), el('dd', { text: value }));
+  }
+
+  container.append(backButton, header, list);
+}
+
 export function mountSearchUi(
   root: HTMLElement,
   controller: SearchController = new SearchController(),
 ): SearchController {
-  clearChildren(root);
+  const existingApp = root.querySelector('.app');
+  if (existingApp) {
+    existingApp.remove();
+  }
 
   const app = el('main', { className: 'app' });
   const title = el('h1', { text: 'Country Search' });
@@ -106,6 +170,12 @@ export function mountSearchUi(
     className: 'results',
     attrs: { role: 'list' },
   });
+  const detail = el('section', {
+    className: 'detail',
+    attrs: { 'aria-live': 'polite' },
+  });
+  detail.hidden = true;
+
   const errorBox = el('div', { className: 'error-box' });
   const errorText = el('p', { className: 'error-box__message' });
   const retryButton = el('button', {
@@ -116,13 +186,44 @@ export function mountSearchUi(
   errorBox.append(errorText, retryButton);
   errorBox.hidden = true;
 
-  app.append(title, searchLabel, input, status, errorBox, results);
+  app.append(title, searchLabel, input, status, errorBox, results, detail);
   root.append(app);
 
+  let selectedCountry: CountryCard | null = null;
+  let latestState: SearchState = controller.getState();
+
+  const showList = (): void => {
+    selectedCountry = null;
+    detail.hidden = true;
+    clearChildren(detail);
+    results.hidden = false;
+  };
+
+  const showDetail = (country: CountryCard): void => {
+    selectedCountry = country;
+    results.hidden = true;
+    detail.hidden = false;
+    renderDetail(detail, country, showList);
+  };
+
   const render = (state: SearchState): void => {
+    latestState = state;
     clearChildren(results);
     errorBox.hidden = true;
     status.textContent = '';
+
+    if (selectedCountry && state.status !== 'results') {
+      showList();
+    }
+
+    if (selectedCountry && state.status === 'results') {
+      const stillPresent = state.countries.some(
+        (country) => country.name === selectedCountry?.name,
+      );
+      if (!stillPresent) {
+        showList();
+      }
+    }
 
     if (state.status === 'idle') {
       status.textContent = 'Type to search for countries.';
@@ -149,23 +250,35 @@ export function mountSearchUi(
     status.textContent = `Found ${state.countries.length} result(s) for “${state.query}”.`;
 
     for (const country of state.countries) {
-      const card = createCountryCard(country, () => {
-        // Detail view is added in the next step.
-      });
+      const card = createCountryCard(country, showDetail);
       card.setAttribute('role', 'listitem');
       results.append(card);
+    }
+
+    if (selectedCountry) {
+      const matched = state.countries.find((country) => country.name === selectedCountry?.name);
+      if (matched) {
+        showDetail(matched);
+      }
     }
   };
 
   input.addEventListener('input', () => {
+    if (selectedCountry) {
+      showList();
+    }
     controller.setQuery(input.value);
   });
 
   retryButton.addEventListener('click', () => {
+    if (selectedCountry) {
+      showList();
+    }
     controller.retry();
   });
 
   controller.subscribe(render);
+  render(latestState);
 
   return controller;
 }
