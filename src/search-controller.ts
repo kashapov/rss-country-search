@@ -1,3 +1,4 @@
+import { createCachedSearch } from './cache';
 import { debounce } from './debounce';
 import { classifySearchError } from './error-kind';
 import { mapCountryResponse, type CountryCard } from './map-country';
@@ -44,7 +45,7 @@ export class SearchController {
   private requestId = 0;
 
   constructor(options: SearchControllerOptions = {}) {
-    this.searchFn = options.searchFn ?? searchCountries;
+    this.searchFn = options.searchFn ?? createCachedSearch(searchCountries);
     this.mapFn =
       options.mapFn ??
       ((raw) => mapCountryResponse(raw as Parameters<typeof mapCountryResponse>[0]));
