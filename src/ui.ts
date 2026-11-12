@@ -163,9 +163,21 @@ export function mountSearchUi(
     },
   });
   const status = el('p', {
-    className: 'status',
+    className: 'status status--idle',
     attrs: { role: 'status', 'aria-live': 'polite' },
   });
+  const loading = el('div', {
+    className: 'loading',
+    attrs: { role: 'status', 'aria-live': 'polite' },
+  });
+  const loadingSpinner = el('span', {
+    className: 'loading__spinner',
+    attrs: { 'aria-hidden': 'true' },
+  });
+  const loadingText = el('span', { className: 'loading__text' });
+  loading.append(loadingSpinner, loadingText);
+  loading.hidden = true;
+
   const results = el('div', {
     className: 'results',
     attrs: { role: 'list' },
@@ -186,7 +198,7 @@ export function mountSearchUi(
   errorBox.append(errorText, retryButton);
   errorBox.hidden = true;
 
-  app.append(title, searchLabel, input, status, errorBox, results, detail);
+  app.append(title, searchLabel, input, status, loading, errorBox, results, detail);
   root.append(app);
 
   let selectedCountry: CountryCard | null = null;
@@ -206,11 +218,18 @@ export function mountSearchUi(
     renderDetail(detail, country, showList);
   };
 
+  const setStatus = (kind: SearchState['status'], text: string): void => {
+    status.className = `status status--${kind}`;
+    status.textContent = text;
+  };
+
   const render = (state: SearchState): void => {
     latestState = state;
     clearChildren(results);
     errorBox.hidden = true;
+    loading.hidden = true;
     status.textContent = '';
+    status.className = 'status';
 
     if (selectedCountry && state.status !== 'results') {
       showList();
@@ -226,28 +245,30 @@ export function mountSearchUi(
     }
 
     if (state.status === 'idle') {
-      status.textContent = 'Type to search for countries.';
+      setStatus('idle', 'Type to search for countries.');
       return;
     }
 
     if (state.status === 'loading') {
-      status.textContent = `Searching for “${state.query}”…`;
+      setStatus('loading', '');
+      loading.hidden = false;
+      loadingText.textContent = `Searching for “${state.query}”…`;
       return;
     }
 
     if (state.status === 'empty') {
-      status.textContent = `Nothing found for “${state.query}”. Try another name.`;
+      setStatus('empty', `Nothing found for “${state.query}”. Try another name.`);
       return;
     }
 
     if (state.status === 'error') {
-      status.textContent = '';
+      setStatus('error', '');
       errorBox.hidden = false;
       errorText.textContent = state.errorMessage;
       return;
     }
 
-    status.textContent = `Found ${state.countries.length} result(s) for “${state.query}”.`;
+    setStatus('results', `Found ${state.countries.length} result(s) for “${state.query}”.`);
 
     for (const country of state.countries) {
       const card = createCountryCard(country, showDetail);
