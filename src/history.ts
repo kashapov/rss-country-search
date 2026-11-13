@@ -45,9 +45,11 @@ export function pushSearchHistory(
     return current;
   }
 
-  const withoutDuplicate = current.filter(
-    (item) => item.toLowerCase() !== normalized.toLowerCase(),
-  );
+  const alreadyExists = current.some((item) => item.toLowerCase() === normalized.toLowerCase());
 
-  return [normalized, ...withoutDuplicate].slice(0, limit);
+  if (alreadyExists) {
+    return current;
+  }
+
+  return [normalized, ...current].slice(0, limit);
 }

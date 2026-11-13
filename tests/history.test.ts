@@ -29,10 +29,18 @@ describe('search history helpers', () => {
     expect(loadSearchHistory(createMemoryStorage({ [SEARCH_HISTORY_KEY]: '{bad' }))).toEqual([]);
   });
 
-  it('pushes newest query to the front and removes duplicates', () => {
-    expect(pushSearchHistory('Spain', ['France', 'spain', 'Italy'], 3)).toEqual([
+  it('pushes newest query to the front only when it is new', () => {
+    expect(pushSearchHistory('Spain', ['France', 'Italy'], 3)).toEqual([
       'Spain',
       'France',
+      'Italy',
+    ]);
+  });
+
+  it('keeps existing history order when the query is repeated', () => {
+    expect(pushSearchHistory('spain', ['France', 'Spain', 'Italy'], 3)).toEqual([
+      'France',
+      'Spain',
       'Italy',
     ]);
   });
