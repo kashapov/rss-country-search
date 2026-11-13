@@ -1,5 +1,5 @@
-import type { CountryCard } from './map-country';
-import { SearchController, type SearchState } from './search-controller';
+import type { CountryCard } from './map-country.js';
+import { SearchController, type SearchState } from './search-controller.js';
 
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,

@@ -1,14 +1,14 @@
-import { createCachedSearch } from './cache';
-import { debounce } from './debounce';
-import { classifySearchError } from './error-kind';
+import { createCachedSearch } from './cache.js';
+import { debounce } from './debounce.js';
+import { classifySearchError } from './error-kind.js';
 import {
   loadSearchHistory,
   pushSearchHistory,
   saveSearchHistory,
   type HistoryStorage,
-} from './history';
-import { mapCountryResponse, type CountryCard } from './map-country';
-import { searchCountries } from './search-countries';
+} from './history.js';
+import { mapCountryResponse, type CountryCard } from './map-country.js';
+import { searchCountries } from './search-countries.js';
 
 export type SearchState =
   | { status: 'idle'; countries: CountryCard[]; query: string; errorMessage: null }

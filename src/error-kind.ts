@@ -1,4 +1,4 @@
-import { HttpError } from './http-error';
+import { HttpError } from './http-error.js';
 
 export type SearchErrorClassification =
   | { kind: 'aborted'; message: null }

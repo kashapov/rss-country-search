@@ -1,4 +1,4 @@
-import type { SearchFn } from './search-controller';
+import type { SearchFn } from './search-controller.js';
 
 function abortError(): DOMException {
   return new DOMException('Aborted', 'AbortError');

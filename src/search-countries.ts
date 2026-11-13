@@ -1,4 +1,4 @@
-import { HttpError } from './http-error';
+import { HttpError } from './http-error.js';
 
 const DEFAULT_TIMEOUT_MS = 8_000;
 const API_BASE_URL = 'https://countries.dev/name';
