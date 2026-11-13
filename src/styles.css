@@ -94,6 +94,13 @@ h1 {
   outline: none;
 }
 
+.history__item--active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, white);
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .status {
   min-height: 1.5rem;
   margin: 0;

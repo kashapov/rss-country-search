@@ -212,6 +212,8 @@ export function mountSearchUi(
 
   let selectedCountry: CountryCard | null = null;
   let latestState: SearchState = controller.getState();
+  let activeHistoryQuery = '';
+  let latestHistoryItems: string[] = controller.getHistory();
 
   const showList = (): void => {
     selectedCountry = null;
@@ -232,6 +234,16 @@ export function mountSearchUi(
     status.textContent = text;
   };
 
+  const setActiveHistoryQuery = (query: string): void => {
+    const next = query.trim();
+    if (activeHistoryQuery === next) {
+      return;
+    }
+
+    activeHistoryQuery = next;
+    renderHistory(latestHistoryItems);
+  };
+
   const render = (state: SearchState): void => {
     latestState = state;
     clearChildren(results);
@@ -239,6 +251,12 @@ export function mountSearchUi(
     loading.hidden = true;
     status.textContent = '';
     status.className = 'status';
+
+    if (state.status === 'idle') {
+      setActiveHistoryQuery('');
+    } else {
+      setActiveHistoryQuery(state.query);
+    }
 
     if (selectedCountry && state.status !== 'results') {
       showList();
@@ -294,6 +312,7 @@ export function mountSearchUi(
   };
 
   const renderHistory = (items: string[]): void => {
+    latestHistoryItems = items;
     clearChildren(historyList);
 
     if (items.length === 0) {
@@ -304,10 +323,15 @@ export function mountSearchUi(
     historySection.hidden = false;
 
     for (const item of items) {
+      const isActive = item.toLowerCase() === activeHistoryQuery.toLowerCase();
       const button = el('button', {
-        className: 'history__item',
+        className: isActive ? 'history__item history__item--active' : 'history__item',
         text: item,
-        attrs: { type: 'button', role: 'listitem' },
+        attrs: {
+          type: 'button',
+          role: 'listitem',
+          'aria-pressed': isActive ? 'true' : 'false',
+        },
       });
 
       button.addEventListener('click', () => {
@@ -315,6 +339,7 @@ export function mountSearchUi(
           showList();
         }
         input.value = item;
+        setActiveHistoryQuery(item);
         controller.searchNow(item);
       });
 
