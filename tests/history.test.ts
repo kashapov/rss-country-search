@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   loadSearchHistory,
   pushSearchHistory,
+  removeSearchHistory,
   saveSearchHistory,
   SEARCH_HISTORY_KEY,
 } from '../src/history';
@@ -51,6 +52,10 @@ describe('search history helpers', () => {
 
     expect(storage.getItem(SEARCH_HISTORY_KEY)).toBe(JSON.stringify(['Spain', 'Italy']));
   });
+
+  it('removes a history item without touching the others', () => {
+    expect(removeSearchHistory('spain', ['France', 'Spain', 'Italy'])).toEqual(['France', 'Italy']);
+  });
 });
 
 describe('SearchController history', () => {
@@ -92,5 +97,24 @@ describe('SearchController history', () => {
       status: 'results',
       query: 'spain',
     });
+  });
+
+  it('removes a history item and persists the change', async () => {
+    const storage = createMemoryStorage({
+      [SEARCH_HISTORY_KEY]: JSON.stringify(['france', 'spain']),
+    });
+
+    const controller = new SearchController({
+      debounceMs: 0,
+      searchFn: vi.fn(async () => []),
+      historyStorage: storage,
+    });
+
+    expect(controller.getHistory()).toEqual(['france', 'spain']);
+
+    controller.removeHistoryItem('spain');
+
+    expect(controller.getHistory()).toEqual(['france']);
+    expect(JSON.parse(storage.getItem(SEARCH_HISTORY_KEY)!)).toEqual(['france']);
   });
 });

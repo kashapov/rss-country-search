@@ -79,26 +79,65 @@ h1 {
 }
 
 .history__item {
-  padding: 0.35rem 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.2rem 0.25rem 0.2rem 0.55rem;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
   color: var(--text);
-  cursor: pointer;
   font-size: 0.9rem;
 }
 
-.history__item:hover,
-.history__item:focus-visible {
+.history__item:hover {
   border-color: var(--accent);
-  outline: none;
 }
 
 .history__item--active {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 14%, white);
   color: var(--accent);
+}
+
+.history__query,
+.history__remove {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.history__query {
+  padding: 0.2rem 0.25rem;
+  font-weight: inherit;
+}
+
+.history__item--active .history__query {
   font-weight: 600;
+}
+
+.history__query:focus-visible,
+.history__remove:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, white);
+  outline-offset: 1px;
+  border-radius: 999px;
+}
+
+.history__remove {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  line-height: 1;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.history__remove:hover,
+.history__remove:focus-visible {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, white);
 }
 
 .status {

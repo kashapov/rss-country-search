@@ -324,17 +324,30 @@ export function mountSearchUi(
 
     for (const item of items) {
       const isActive = item.toLowerCase() === activeHistoryQuery.toLowerCase();
-      const button = el('button', {
+      const chip = el('div', {
         className: isActive ? 'history__item history__item--active' : 'history__item',
+        attrs: { role: 'listitem' },
+      });
+
+      const queryButton = el('button', {
+        className: 'history__query',
         text: item,
         attrs: {
           type: 'button',
-          role: 'listitem',
           'aria-pressed': isActive ? 'true' : 'false',
         },
       });
 
-      button.addEventListener('click', () => {
+      const removeButton = el('button', {
+        className: 'history__remove',
+        text: '×',
+        attrs: {
+          type: 'button',
+          'aria-label': `Remove ${item} from recent searches`,
+        },
+      });
+
+      queryButton.addEventListener('click', () => {
         if (selectedCountry) {
           showList();
         }
@@ -343,7 +356,16 @@ export function mountSearchUi(
         controller.searchNow(item);
       });
 
-      historyList.append(button);
+      removeButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (item.toLowerCase() === activeHistoryQuery.toLowerCase()) {
+          setActiveHistoryQuery('');
+        }
+        controller.removeHistoryItem(item);
+      });
+
+      chip.append(queryButton, removeButton);
+      historyList.append(chip);
     }
   };
 

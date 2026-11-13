@@ -53,3 +53,12 @@ export function pushSearchHistory(
 
   return [normalized, ...current].slice(0, limit);
 }
+
+export function removeSearchHistory(query: string, current: string[]): string[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return current;
+  }
+
+  return current.filter((item) => item.toLowerCase() !== normalized);
+}

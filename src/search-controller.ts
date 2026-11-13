@@ -4,6 +4,7 @@ import { classifySearchError } from './error-kind.js';
 import {
   loadSearchHistory,
   pushSearchHistory,
+  removeSearchHistory,
   saveSearchHistory,
   type HistoryStorage,
 } from './history.js';
@@ -130,6 +131,16 @@ export class SearchController {
     void this.executeSearch(this.lastQuery);
   }
 
+  removeHistoryItem(query: string): void {
+    const nextHistory = removeSearchHistory(query, this.history);
+    if (nextHistory.length === this.history.length) {
+      return;
+    }
+
+    this.history = nextHistory;
+    this.persistHistory();
+  }
+
   private abortInFlightRequest(): void {
     if (this.abortController) {
       this.abortController.abort();
@@ -211,7 +222,10 @@ export class SearchController {
     }
 
     this.history = nextHistory;
+    this.persistHistory();
+  }
 
+  private persistHistory(): void {
     if (this.historyStorage) {
       saveSearchHistory(this.history, this.historyStorage);
     }
